@@ -10,7 +10,7 @@ from utils.custom_mouse import mouse
 from utils.misc import wait, cut_roi, color_filter
 
 from logger import Logger
-from config import Config
+from config import Config, ItemProps
 from screen import Screen
 from item import ItemFinder
 from template_finder import TemplateFinder
@@ -270,8 +270,8 @@ class UiManager():
             include_props = self._config.items[x.name].include
             exclude_props = self._config.items[x.name].exclude
             if not (include_props or exclude_props):
-                Logger.debug(f"{x.name}: Stashing")
-                self._game_stats.log_item_keep(x.name, self._config.items[x.name].pickit_type == 2, img)
+                if do_logging:
+                    Logger.debug(f"{x.name}: Stashing")
                 filtered_list.append(x)
                 continue
             include = True
@@ -296,7 +296,8 @@ class UiManager():
                 if include_logic_type == "AND" and len(found_props) > 0 and all(found_props):
                     include = True
             if not include:
-                Logger.debug(f"{x.name}: Discarding. Required {include_logic_type}({include_props})={include}")
+                if do_logging:
+                    Logger.debug(f"{x.name}: Discarding. Required {include_logic_type}({include_props})={include}")
                 continue
             exclude = False
             exclude_logic_type = self._config.items[x.name].exclude_type
@@ -322,10 +323,9 @@ class UiManager():
             if include and not exclude:
                 if do_logging:
                     Logger.debug(f"{x.name}: Stashing. Required {include_logic_type}({include_props})={include}, exclude {exclude_logic_type}({exclude_props})={exclude}")
-                    self._game_stats.log_item_keep(x.name, self._config.items[x.name].pickit_type == 2, img)
                 filtered_list.append(x)
 
-        return len(filtered_list) > 0
+        return filtered_list
 
     def _move_to_stash_tab(self, stash_idx: int):
         """Move to a specifc tab in the stash
@@ -387,9 +387,7 @@ class UiManager():
                         cv2.imwrite("./info_screenshots/info_gold_stash_full_" + time.strftime("%Y%m%d_%H%M%S") + ".png", self._screen.grab())
                     if self._curr_stash["gold"] > 3:
                         # turn off gold pickup
-                        self._config.char["stash_gold"] = False
-                        self._config.items["misc_gold"].pickit_type = 0
-                        item_finder.update_items_to_pick(self._config)
+                        self._config.turn_off_goldpickup()
                         # inform user about it
                         Logger.info("All stash tabs and character are full of gold, turn of gold pickup")
                         if self._config.general["custom_message_hook"]:
@@ -410,7 +408,8 @@ class UiManager():
                 # check item again and discard it or stash it
                 wait(1.2, 1.4)
                 hovered_item = self._screen.grab()
-                if self._keep_item(item_finder, hovered_item):
+                found_items = self._keep_item(item_finder, hovered_item)
+                if len(found_items) > 0:
                     keyboard.send('ctrl', do_release=False)
                     wait(0.2, 0.25)
                     mouse.press(button="left")
@@ -422,9 +421,11 @@ class UiManager():
                     # check the _keep_item again. In case stash is full we will still find the same item
                     wait(0.3)
                     did_stash_test_img = self._screen.grab()
-                    if self._keep_item(item_finder, did_stash_test_img, False):
+                    if len(self._keep_item(item_finder, did_stash_test_img, False)) > 0:
                         Logger.debug("Wanted to stash item, but its still in inventory. Assumes full stash. Move to next.")
                         break
+                    else:
+                        self._game_stats.log_item_keep(found_items[0].name, self._config.items[found_items[0].name].pickit_type == 2, hovered_item)
                 else:
                     # make sure there is actually an item
                     time.sleep(0.3)
@@ -632,6 +633,6 @@ if __name__ == "__main__":
     game_stats = GameStats()
     screen = Screen(config.general["monitor"])
     template_finder = TemplateFinder(screen)
-    item_finder = ItemFinder(config)
+    item_finder = ItemFinder()
     ui_manager = UiManager(screen, template_finder, game_stats)
     ui_manager.stash_all_items(5, item_finder)
