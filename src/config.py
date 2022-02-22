@@ -159,6 +159,7 @@ class Config:
             "use_merc": bool(int(Config._select_val("char", "use_merc"))),
             "id_items": bool(int(Config._select_val("char", "id_items"))),
             "open_chests": bool(int(Config._select_val("char", "open_chests"))),
+            "arcane_run_all_corners": bool(int(self._select_val("char", "arcane_run_all_corners"))),
             "pre_buff_every_run": bool(int(Config._select_val("char", "pre_buff_every_run"))),
             "cta_available": bool(int(Config._select_val("char", "cta_available"))),
             "weapon_switch": Config._select_val("char", "weapon_switch"),
