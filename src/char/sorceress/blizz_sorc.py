@@ -214,6 +214,7 @@ class BlizzSorc(Sorceress):
     def kill_nihlathak(self, end_nodes: list[int]) -> bool:
         # Find nilhlatak position
         atk_sequences = max(1, int(Config().char["atk_len_nihlathak"]) - 1)
+        cast_pos_abs = (0,0)
         for i in range(atk_sequences):
             nihlathak_pos_abs = self._pather.find_abs_node_pos(end_nodes[-1], grab())
             if nihlathak_pos_abs is not None:
